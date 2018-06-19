@@ -9,31 +9,21 @@ import imutils
 import cv2
 
 
-#*****************     Class for point        *************************
+# Class for point
 class point:
   x = 0
   y = 0
-#**********************************************************************
-
-#------------   Points for Left Right Top and Bottom     --------------
+	
+# Points for Left Right Top and Bottom
 plL = point()
 plR = point()
 plU = point()
 plD = point()
-#---------- Ends Points for Left Right Top and Bottom  ----------------
 
-
+# For finding midpoint
 def midpoint(ptA, ptB):
 	return ((ptA[0] + ptB[0]) * 0.5, (ptA[1] + ptB[1]) * 0.5)
  
-"""# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True,
-	help="path to the input image")
-ap.add_argument("-w", "--width", type=float, required=True,
-	help="width of the left-most object in the image (in inches)")
-args = vars(ap.parse_args())"""
-
 # load the image, convert it to grayscale, and blur it slightly
 cam = cv2.VideoCapture(0)
 _ ,image = cam.read()
@@ -80,22 +70,11 @@ for c in cnts:
 	cX = np.average(box[:, 0])
 	cY = np.average(box[:, 1])
 
-	# if this is the first contour we are examining (i.e.,
-	# the left-most contour), we presume this is the
-	# reference object
+	# if reference object is not set then we presume
+	# the origin i.e. the (0,0) of the camera frame 
+	# as reference point
 	if refObj is None:
-		# unpack the ordered bounding box, then compute the
-		# midpoint between the top-left and top-right points,
-		# followed by the midpoint between the top-right and
-		# bottom-right
 		box1 = np.zeros(box.shape)
-		#(tl, tr, br, bl) = box1
-		#(tlblX, tlblY) = midpoint(tl, bl)
-		#(trbrX, trbrY) = midpoint(tr, br)
- 
-		# compute the Euclidean distance between the midpoints,
-		# then construct the reference object
-		#D = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
 		rcX = 0
 		rcY = 0
 		refObj = (box1, (rcX, rcY), 27.6)
@@ -110,8 +89,7 @@ for c in cnts:
 	refCoords = np.vstack([refObj[0], refObj[1]])
 	objCoords = np.vstack([box, (cX, cY)])
 
-	#################        Give them values     ########################    
-
+	# Give them values 
 	plL.x = box[0][0]
 	plL.y = box[0][1]
 
@@ -124,12 +102,7 @@ for c in cnts:
 	plD.x = box[3][0]
 	plD.y = box[3][1]
 
-	#################            end              ######################## 
-
-
-
-	#++++++++++++++++     Finding Height and width     +++++++++++++++++++
-
+	# Finding Height and width
 	for (x, y) in box:
 		cv2.circle(orig, (int(x), int(y)), 5, (0, 0, 255), -1)
 	
@@ -165,9 +138,9 @@ for c in cnts:
 	# compute it as the ratio of pixels to supplied metric
 	# (in this case, inches)
 	if pixelsPerMetric is None:
-		pixelsPerMetric = 27.6
+		pixelsPerMetric = 27.6 # This ratio needs to be set manually
 
-    # compute the size of the object
+    	# compute the size of the object
 	dimA = dA / pixelsPerMetric
 	dimB = dB / pixelsPerMetric
  
@@ -179,11 +152,7 @@ for c in cnts:
 		(int(trbrX + 10), int(trbrY)), cv2.FONT_HERSHEY_SIMPLEX,
 		0.65, (255, 255, 255), 2)
 
-	#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-	#%%%%%%%%%%%%%%%%%%%%%%%%%   Finding Angle %%%%%%%%%%%%%%%%%%%%%%%%%%
-	
+	# Finding Angle 
 	rp1 = point()
 	rp2 = point()
 	
@@ -202,9 +171,7 @@ for c in cnts:
 	
 	print("( " + str(rp1.x) + " , " + 
 		str(rp1.y) + ") (" + str(rp2.x) + " , " + str(rp2.y) + " ) ")
-
-	#(abs(center_1.y-center_2.y)*1.0 /(center_1.x-center_2.x)*1.0))*(180.0/PI)
-
+	
 	gradient = (rp2.y - rp1.y)*1.0/(rp2.x - rp1.x)*1.0
 	Angle = math.atan(gradient)
 	Angle = Angle*57.2958
@@ -212,17 +179,16 @@ for c in cnts:
 	if(Angle < 0):
 	    Angle = Angle + 180
 	
+	# Results of calculations can be printed in console or you can
+	# write them on the frame itself
 	print("Angle = " + str(Angle))
-	#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	
 	print("("+ str(plL.x) + " , " + str(plL.y) + ")")
 	print("("+ str(plR.x) + " , " + str(plR.y) + ")")
 	print("("+ str(plU.x) + " , " + str(plU.y) + ")")
 	print("("+ str(plD.x) + " , " + str(plD.y) + ")")
-	
-	#print("Height = " + str(height/27.6))
-	#print("width = " + str(width/27.6))
-	#print("Loss = " + str(abs(diag1 - diag2)))
+	print("Height = " + str(height/27.6))
+	print("width = " + str(width/27.6))
+	print("Loss = " + str(abs(diag1 - diag2)))
 
 	# loop over the original points
 	for ((xA, yA), (xB, yB), color) in zip(refCoords, objCoords, colors):
