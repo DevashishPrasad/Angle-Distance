@@ -26,11 +26,11 @@ def midpoint(ptA, ptB):
 cam = cv2.VideoCapture(1)
 _ ,image = cam.read()
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-gray = cv2.GaussianBlur(gray, (7, 7), 0)
+gray = cv2.GaussianBlur(gray, (1, 1), 0)
  
 # perform edge detection, then perform a dilation + erosion to
 # close gaps in between object edges
-edged = cv2.Canny(gray, 50, 100)
+edged = cv2.Canny(gray, 100, 200)
 edged = cv2.dilate(edged, None, iterations=1)
 edged = cv2.erode(edged, None, iterations=1)
  
@@ -44,13 +44,14 @@ cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 (cnts, _) = contours.sort_contours(cnts)
 colors = ((0, 0, 255), (240, 0, 159), (0, 165, 255), (255, 255, 0),
 	(255, 0, 255))
+
 refObj = None
 pixelsPerMetric = None
 
 # loop over the contours individually
 for c in cnts:
 	# if the contour is not sufficiently large, ignore it
-	if cv2.contourArea(c) < 100:
+	if cv2.contourArea(c) < 500:
 		continue
  
 	# compute the rotated bounding box of the contour
@@ -83,11 +84,19 @@ for c in cnts:
 		# compute the Euclidean distance between the midpoints,
 		# then construct the reference object
 		D = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
-		refObj = (box, (cX, cY), D / 2.85)
+        
+		pixelsPerMetric =  D / 2.65
+		refObj = (box, (cX, cY), pixelsPerMetric)
 		continue
 
 	# draw the contours on the image
 	orig = image.copy()
+
+	x,y,z = image.shape
+
+	#The X axis in white
+	cv2.line(orig, (0 , y/3), (x*20,y/3),(255, 255, 255), 2)
+
 	cv2.drawContours(orig, [box.astype("int")], -1, (0, 255, 0), 2)
 	cv2.drawContours(orig, [refObj[0].astype("int")], -1, (0, 255, 0), 2)
  
@@ -141,24 +150,10 @@ for c in cnts:
 	dA = dist.euclidean((tltrX, tltrY), (blbrX, blbrY))
 	dB = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
  
-	# if the pixels per metric has not been initialized, then
-	# compute it as the ratio of pixels to supplied metric
-	# (in this case, cm)
-	if pixelsPerMetric is None:
-		pixelsPerMetric = 27.6 #This value needs to be set manually
-
-    	# compute the size of the object
+    # compute the size of the object
 	dimA = dA / pixelsPerMetric
 	dimB = dB / pixelsPerMetric
  
-	# draw the object sizes on the image
-	cv2.putText(orig, "{:.1f}cm".format(dimB),
-		(int(tltrX - 15), int(tltrY - 10)), cv2.FONT_HERSHEY_SIMPLEX,
-		0.65, (255, 255, 255), 2)
-	cv2.putText(orig, "{:.1f}cm".format(dimA),
-		(int(trbrX + 10), int(trbrY)), cv2.FONT_HERSHEY_SIMPLEX,
-		0.65, (255, 255, 255), 2)
-	
 	# Finding Angle
 	rp1 = point()
 	rp2 = point()
@@ -175,10 +170,25 @@ for c in cnts:
 		rp1.y = tlblY
 		rp2.x = trbrX 
 		rp2.y = trbrY
+
+	#Extending the line		
+	delX = (rp2.x - rp1.x)/(math.sqrt(((rp2.x-rp1.x) ** 2)+((rp2.y-rp1.y) ** 2))) 
+	delY = (rp2.y - rp1.y)/(math.sqrt(((rp2.x-rp1.x) ** 2)+((rp2.y-rp1.y) ** 2)))
+
+	cv2.line(orig, (int(rp1.x - delX*650), int(rp1.y - delY*650)), 
+		(int(rp2.x + delX*650), int(rp2.y + delY*650)),(205, 0, 0), 2)
 	
-	print("( " + str(rp1.x) + " , " + 
-		str(rp1.y) + ") (" + str(rp2.x) + " , " + str(rp2.y) + " ) ")
-	
+	# print("( " + str(rp1.x) + " , " + 
+	# 	str(rp1.y) + ") (" + str(rp2.x) + " , " + str(rp2.y) + " ) ")
+
+	# draw the object sizes on the image
+	cv2.putText(orig, "{:.3f}cm".format(dimB),
+		(int(tltrX - 15), int(tltrY - 10)), cv2.FONT_HERSHEY_SIMPLEX,
+		0.65, (255, 255, 255), 2)
+	cv2.putText(orig, "{:.3f}cm".format(dimA),
+		(int(trbrX + 10), int(trbrY)), cv2.FONT_HERSHEY_SIMPLEX,
+		0.65, (255, 255, 255), 2)
+		
 	gradient = (rp2.y - rp1.y)*1.0/(rp2.x - rp1.x)*1.0
 	Angle = math.atan(gradient)
 	Angle = Angle*57.2958
@@ -186,12 +196,23 @@ for c in cnts:
 	if(Angle < 0):
 	    Angle = Angle + 180
 	
+	cv2.putText(orig, "Orientation = {:.4f}".format(Angle) + " Degree",
+			(300, 460), cv2.FONT_HERSHEY_SIMPLEX,0.6, (0, 255, 255), 1)
+
+	
+	cv2.putText(orig, "White Line = X-Axis",
+			(30, 460), cv2.FONT_HERSHEY_SIMPLEX,0.6, (255, 255, 255), 1)
+
+
+	cv2.putText(orig, "Object Dimensions and Orientation Detection",
+			(85, 30), cv2.FONT_HERSHEY_SIMPLEX,0.65, (255, 255, 255), 2)
+
 	# Results can be drawn on the frame as well as on the console
-	print("Angle = " + str(Angle))
-	print("("+ str(plL.x) + " , " + str(plL.y) + ")")
-	print("("+ str(plR.x) + " , " + str(plR.y) + ")")
-	print("("+ str(plU.x) + " , " + str(plU.y) + ")")
-	print("("+ str(plD.x) + " , " + str(plD.y) + ")")
+	# print("Angle = " + str(Angle))
+	# print("("+ str(plL.x) + " , " + str(plL.y) + ")")
+	# print("("+ str(plR.x) + " , " + str(plR.y) + ")")
+	# print("("+ str(plU.x) + " , " + str(plU.y) + ")")
+	# print("("+ str(plD.x) + " , " + str(plD.y) + ")")
 
 	# loop over the original points
 	for ((xA, yA), (xB, yB), color) in zip(refCoords, objCoords, colors):
