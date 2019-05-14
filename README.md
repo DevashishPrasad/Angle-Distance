@@ -2,6 +2,8 @@
 Finding distance of various objects from a reference object and their angle with respect to x-axis 
 
 ## What this is about 
+[Working Video](https://www.linkedin.com/feed/update/urn:li:activity:6514920454183051264)
+
 ### distance from a reference object (coin)
 <img src="git1.png" alt="Picture Not supported by your browser!!">
 
